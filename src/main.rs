@@ -4,10 +4,10 @@ use std::fs;
 use std::process;
 use minigrep::{search, search_case_insensitive};
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    //let _args: Vec<String> = env::args().collect();
     //dbg!(&args);
 
-    let input = Config::build(&args).unwrap_or_else(|err| {
+    let input = Config::build(env::args()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {err}");
         process::exit(1);
     });
@@ -30,23 +30,36 @@ struct Config {
     ignore_case: bool,
 }
 impl Config {
-    fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err("Not enough arguments passed.");
-        }
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+    fn build(mut args: impl Iterator<Item = String>,) -> Result<Config, &'static str> {
+
+        args.next(); 
+
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a valid file path"),
+        };
         
-        let ignore_case = if args.len() == 4 {
-            if args[3] == "-ci" {
-                true
-            } else if args[3] == "-cs" {
-                false
-            } else {
-                panic!("unrecognised command {}", args[3]);
-            }
-        } else {
-            env::var("IGNORE_CASE").is_ok()
+        // let ignore_case = if !args.next().is_none() {
+        //     if args[3] == "-ci" {
+        //         true
+        //     } else if args[3] == "-cs" {
+        //         false
+        //     } else {
+        //         panic!("unrecognised command {}", args[3]);
+        //     }
+        // } else {
+        //     env::var("IGNORE_CASE").is_ok()
+        // };
+        let ignore_case = match args.next().as_deref() {
+            Some("-ci") => true,
+            Some("-cs") => false,
+            Some(_arg) => return Err("Unrecognised command: {arg}"),
+            None => env::var("IGNORE_CASE").is_ok(),
+            
         };
 
 
